@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #87ceeb; /* Sky Blue */
+      }
+
+      #game-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px; /* Set a max-width for better mobile experience */
+        height: 600px;
+        border: 2px solid #000;
+        background-image: url(y7w8_npi1_210209.jpg);
+        background-color: aqua;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+
+      #basket {
+        position: absolute;
+        bottom: 10px;
+        width: 80px;
+        height: 40px;
+        background-color: #532609; /* Saddle Brown */
+        cursor: grab;
+        user-select: none;
+        border-radius: 5px;
+      }
+
+      .apple {
+        position: absolute;
+        width: 50px;
+        height: 40px;
+        background-color: #ec5f43; /* Orange Red */
+        border-radius: 50%;
+      }
+
+      #score-board {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      #lives-board {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      #game-over {
+        position: absolute;
+        top: 70%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 30px;
+        font-weight: bold;
+        display: none;
+        color: rgb(244, 14, 14);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="basket"></div>
+      <div id="score-board">Score: 0</div>
+      <div id="lives-board">Lives: 3</div>
+      <div id="game-over">Game Over<br />Score: 0</div>
+    </div>
+
+    <script>
+      const gameContainer = document.getElementById("game-container");
+      const basket = document.getElementById("basket");
+      const scoreBoard = document.getElementById("score-board");
+      const livesBoard = document.getElementById("lives-board");
+      const gameOver = document.getElementById("game-over");
+
+      let score = 0;
+      let lives = 3;
+      let isGameOver = false;
+
+      basket.addEventListener("mousedown", startDrag);
+      document.addEventListener("mouseup", stopDrag);
+      document.addEventListener("mousemove", dragBasket);
+
+      basket.addEventListener("touchstart", startTouch);
+      document.addEventListener("touchend", stopTouch);
+      document.addEventListener("touchmove", dragTouch);
+
+      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("keyup", handleKeyUp);
+
+      let isMovingLeft = false;
+      let isMovingRight = false;
+
+      function startDrag(e) {
+        if (isGameOver) return;
+        e.preventDefault();
+        basket.style.cursor = "grabbing";
+        document.addEventListener("mousemove", dragBasket);
+      }
+
+      function stopDrag() {
+        if (isGameOver) return;
+        basket.style.cursor = "grab";
+        document.removeEventListener("mousemove", dragBasket);
+      }
+
+      function dragBasket(e) {
+        if (isGameOver) return;
+        const x = e.clientX - gameContainer.offsetLeft - basket.offsetWidth / 2;
+        if (x >= 0 && x <= gameContainer.offsetWidth - basket.offsetWidth) {
+          basket.style.left = x + "px";
+        }
+      }
+
+      function startTouch(e) {
+        if (isGameOver) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        basket.style.cursor = "grabbing";
+        document.addEventListener("touchmove", dragTouch);
+      }
+
+      function stopTouch() {
+        if (isGameOver) return;
+        basket.style.cursor = "grab";
+        document.removeEventListener("touchmove", dragTouch);
+      }
+
+      function dragTouch(e) {
+        if (isGameOver) return;
+        const touch = e.touches[0];
+        const x =
+          touch.clientX - gameContainer.offsetLeft - basket.offsetWidth / 2;
+        if (x >= 0 && x <= gameContainer.offsetWidth - basket.offsetWidth) {
+          basket.style.left = x + "px";
+        }
+      }
+
+      function handleKeyDown(e) {
+        if (isGameOver) return;
+        if (e.key === "ArrowLeft") {
+          isMovingLeft = true;
+        } else if (e.key === "ArrowRight") {
+          isMovingRight = true;
+        }
+      }
+
+      function handleKeyUp(e) {
+        if (isGameOver) return;
+        if (e.key === "ArrowLeft") {
+          isMovingLeft = false;
+        } else if (e.key === "ArrowRight") {
+          isMovingRight = false;
+        }
+      }
+
+      function moveBasket() {
+        if (isGameOver) return;
+
+        const currentLeft = parseFloat(getComputedStyle(basket).left);
+
+        if (isMovingLeft && currentLeft > 0) {
+          basket.style.left = currentLeft - 5 + "px";
+        } else if (
+          isMovingRight &&
+          currentLeft < gameContainer.offsetWidth - basket.offsetWidth
+        ) {
+          basket.style.left = currentLeft + 5 + "px";
+        }
+      }
+
+      function createApple() {
+        if (isGameOver) return;
+
+        const apple = document.createElement("div");
+        apple.className = "apple";
+        apple.style.left =
+          Math.random() * (gameContainer.offsetWidth - 30) + "px";
+        gameContainer.appendChild(apple);
+
+        const fallInterval = setInterval(() => {
+          if (isGameOver) {
+            clearInterval(fallInterval);
+            gameContainer.removeChild(apple);
+            return;
+          }
+
+          const top = apple.offsetTop + 5;
+          apple.style.top = top + "px";
+
+          if (
+            top + 30 >= basket.offsetTop &&
+            top <= basket.offsetTop + basket.offsetHeight &&
+            apple.offsetLeft + 15 >= basket.offsetLeft &&
+            apple.offsetLeft <= basket.offsetLeft + basket.offsetWidth
+          ) {
+            gameContainer.removeChild(apple);
+            score++;
+            updateScore();
+            clearInterval(fallInterval);
+          }
+
+          if (top > gameContainer.offsetHeight) {
+            gameContainer.removeChild(apple);
+            lives--;
+            updateLives();
+
+            if (lives === 0) {
+              gameOver.innerText = `Game Over\nScore: ${score}`;
+              gameOver.style.display = "block";
+              isGameOver = true;
+            }
+
+            clearInterval(fallInterval);
+          }
+        }, 20);
+      }
+
+      function updateScore() {
+        scoreBoard.innerText = `Score: ${score}`;
+      }
+
+      function updateLives() {
+        livesBoard.innerText = `Lives: ${lives}`;
+      }
+
+      setInterval(createApple, 1500);
+      setInterval(moveBasket, 20);
+    </script>
+  </body>
+</html>
